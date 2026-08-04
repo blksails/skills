@@ -67,9 +67,13 @@ Run `git diff` to inspect the actual code changes. If the diff is large or ambig
 Read the spec yourself. Read the diff yourself. Verify mechanically where possible. Reject on concrete failures rather than interpretive optimism.
 The main review question is not just "does it work?" but "does it stay inside the approved responsibility boundary without hiding new coupling?"
 
-## Multi-Lens Concurrent Review (preferred when dispatching reviewers)
+## Multi-Lens Concurrent Review (for high-risk tasks)
 
-The checks below split cleanly into three lenses that fail in different ways. When a controller dispatches reviewers (impl workflow mode, wave mode, or any parent with the Agent tool), run **one concurrent reviewer per lens in a single message** rather than one reviewer doing all twelve checks — follow `../../rules/parallel-dispatch.md`:
+**The default is one reviewer running all twelve checks.** The lens split below is an escalation for tasks that earn it, not the standard dispatch — three reviewers per task multiplies the review agent count by 3, and once that crosses the host's concurrency ceiling the extra agents stop overlapping and start queueing, which buys depth at a wall-clock price the task may not be worth.
+
+Escalate to the lens split when a mechanical trigger fires — the implementer raised concerns or could not verify mechanically, the write set is wide, the task carries several requirements, or changed files fall outside the declared boundary. (`impl` workflow mode applies exactly these triggers; see its "Review strength" section.)
+
+When you do split, run **one concurrent reviewer per lens in a single message** — follow `../../rules/parallel-dispatch.md`:
 
 | Lens | Owns | Fails on |
 |---|---|---|
@@ -79,8 +83,9 @@ The checks below split cleanly into three lenses that fail in different ways. Wh
 
 Rules:
 - Each lens reviewer gets **only its lens** in the prompt and is told the others are covered concurrently. A reviewer told to check everything checks everything shallowly.
-- **Majority vote**: reject when ≥half the lenses reject. Record dissenting minority findings — do not discard them; a lone dissenter is right often enough to be worth surfacing.
-- One reviewer covering all checks remains correct for a single review in the main context. The lens split is an optimization for the dispatch path, not a weakening of the protocol — **every check below still gets run by someone**.
+- **Majority vote**: `floor(n/2)+1` rejects out of the `n` reviewers actually dispatched. With 1 reviewer that is 1 — a single-reviewer review is not a weaker gate per vote. Note 2 reviewers requires a *unanimous* reject, which is looser than 3; never dispatch exactly two.
+- Record dissenting minority findings — do not discard them; a lone dissenter is right often enough to be worth surfacing.
+- The lens split redistributes the checks; it never drops any. **Every check below still gets run by someone** — by three reviewers when escalated, by one when not.
 
 ## Mechanical Checks
 

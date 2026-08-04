@@ -195,7 +195,23 @@ node ~/.claude/skills/kiro/workflows/parse-tasks.mjs .kiro/specs/<feature> --par
   > /tmp/kiro-<feature>.args.json
 ```
 
-`--ultracode` sets `ultracode: true` (3-lens majority-vote review — `acceptance` / `boundary` / `evidence` — plus the closing completeness critic) and implies `--review`.
+`--ultracode` sets `ultracode: true` (risk-escalated multi-lens review plus the closing completeness critic) and implies `--review`.
+
+**Review strength is escalated per task, not applied uniformly.** Every task gets one reviewer running the full 12-check `kiro-review` protocol; a task escalates to the 3-lens majority vote (`acceptance` / `boundary` / `evidence`) only when a mechanical trigger fires:
+
+| Trigger | Why it means "worth 3× the review budget" |
+|---|---|
+| `impl.concerns` non-empty | The implementer itself flagged something for scrutiny |
+| `impl.needs_manual_verify` | No mechanical verification exists to fall back on |
+| `task.files.length >= 3` | Wide write set — more surface for boundary and coupling errors |
+| `task.reqs.length >= 3` | One task carrying several requirements; acceptance coverage is the likely gap |
+| boundary pre-check hit | Changed files fall outside the declared write set (see below) |
+
+Tune with `riskThresholds: { files, reqs }` in the plan. The reason this is escalation rather than a flat 3 lenses is **concurrency budget**, not a quality trade-off: the host runs at most `min(16, cores − 2)` subagents at once (8 on a 10-core machine), so a width-3 group × 3 lenses = 9 reviewers crosses that ceiling and the ninth agent takes a whole extra batch on its own, doubling the review phase's wall clock while 7 slots idle. Voting is over the reviewers actually dispatched — 1 reviewer means 1 reject verdict rejects, so a downgraded review is not a weaker gate per vote.
+
+Note that **2 lenses is the worst setting** under `floor(n/2)+1` (it needs a unanimous reject, i.e. looser than 3), which is why escalation switches between 1 and 3 and never lands on 2.
+
+The **boundary pre-check** runs in the script, with no agent at all: it diffs `impl.files_changed` against the task's declared write set. A hit forces escalation and is handed to the reviewer as located evidence, saving it the round-trip of comparing paths itself. It never rejects on its own — a changed file outside the boundary is just as often `tasks.md` under-listing a test file that design required, and that is an annotation bug, not an implementer error.
 
 The plan carries two fields that exist because **workflow subagents inherit the main session's cwd, which is not necessarily the project the spec belongs to**:
 
@@ -216,6 +232,8 @@ diagnostics: { totalTasks, groups, concurrentGroups, maxGroupWidth,
 ```
 
 The grouping algorithm is deliberately conservative: a task with no `(P)` marker **and** no backtick-quoted target paths in its body is treated as colliding with everything. So an all-single-task plan usually means **tasks.md is under-annotated, not that the work is genuinely serial**.
+
+**Group width is the single largest wall-clock lever.** Groups run one after another, so total time ≈ group count × (implement + review). The scheduler treats a task with no readable write set as colliding with everything, so under-annotated `tasks.md` produces narrow groups and a long serial chain — width 3 on a 28-task spec is ~10 groups where width 8 would be ~4. Aim for width ≈ the host's concurrency budget (`min(16, cores − 2)`); below that is idle capacity, and the fix is honest `_Boundary:_` paths in `tasks.md`, never a looser scheduler.
 
 - `serialFallback: true` → **stop and say so.** Running a workflow here buys nothing over sequential mode — it's the same one-at-a-time execution with orchestration overhead on top. Two honest options: (a) go back and add `(P)` + `_Boundary:_` / target paths to the tasks that really are independent, then regenerate the plan; (b) accept serial and use sequential mode. Never silently dispatch a zero-concurrency workflow and describe it as running in parallel.
 - `concurrentGroups` low relative to `totalTasks` → same conversation, smaller stakes. Report the achieved width honestly.

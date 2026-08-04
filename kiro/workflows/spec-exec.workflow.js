@@ -42,8 +42,42 @@ const LENSES = {
 const lenseKeys = Array.isArray(A.reviewLenses) && A.reviewLenses.length
   ? A.reviewLenses.filter((k) => LENSES[k])
   : (ultra ? ['acceptance', 'boundary', 'evidence'] : ['acceptance'])
-// 多数决门槛：过半 reject 即判定 reject
-const REJECT_THRESHOLD = Math.floor(lenseKeys.length / 2) + 1
+// 多数决门槛：过半 reject 即判定 reject。按**实际派出的票数**算，不能按 lenseKeys 固定死——
+// 三视角要 2 票才打回，单名复查者 1 票就该打回；用固定值会让降档后的复查形同虚设。
+// 注意 2 票制是这条公式下最差的取值（floor(2/2)+1 = 2 = 全票才打回，比三视角更宽松），
+// 所以下面的降档只在 3 和 1 之间切，不取 2。
+const rejectThreshold = (n) => Math.floor(n / 2) + 1
+
+// 三视角是按需升级的，不是默认。理由是并发预算而非质量取舍：
+// harness 同时最多跑 min(16, 核数-2) 个子代理（10 核机器 = 8）。组宽 3 时，
+// 3 任务 × 3 视角 = 9 个复查者恰好越过 8 —— 多出来的那一个独占一整批，
+// 让 review 阶段的墙钟翻倍，而那一批里另外 7 个槽全是空转。
+// 单名复查者跑的是 kiro-review 的完整 12 项协议（该协议本身认可这种形态），
+// 只有下列机械判据命中时才值得为一个任务花三倍的复查预算。
+const RISK = Object.assign({ files: 3, reqs: 3 }, A.riskThresholds || {})
+function highRisk(task, impl) {
+  if (!ultra) return false
+  if (impl.needs_manual_verify) return true
+  if (Array.isArray(impl.concerns) && impl.concerns.length) return true
+  if ((task.files || []).length >= RISK.files) return true      // 改动面宽
+  if ((task.reqs || []).length >= RISK.reqs) return true        // 一个任务背了多条需求
+  return false
+}
+
+// 边界预筛：把实现者自述的改动文件与任务声明的写入集做差集。
+// 这是纯数据比对，不值得花一个子代理的推理去做，而且它比 agent 更可靠——
+// 不做判定，只做定位：结果直接塞进复查提示，省掉复查者自己 git diff + 逐个比对的往返。
+// 不能据此直接 reject：design 要求改测试文件而边界漏列它，是**边界标注的错**，
+// 实现者照 design 改是对的（见 implementPrompt 铁律 2.5）。所以越界只提升复查强度，不代替判定。
+function boundaryDiff(task, impl) {
+  const declared = task.files || []
+  if (!declared.length) return null                              // 没标边界，无从比对
+  const abs = (f) => (f.startsWith('/') ? f : `${projectRoot || '.'}/${f}`.replace(/\/\.\//g, '/'))
+  const outside = (impl.files_changed || [])
+    .map(abs)
+    .filter((f) => !declared.some((d) => f === d || f.startsWith(d + '/')))
+  return outside.length ? outside : null
+}
 
 // agentType 可覆盖；置 null 则不指定（用默认 workflow subagent）
 const AT = Object.assign(
@@ -58,6 +92,12 @@ const MODELS = Object.assign(
   { impl: 'sonnet', review: null, debug: null, critic: null },
   A.models || {},
 )
+
+// 每类子代理的推理档位（'low'|'medium'|'high'|'xhigh'|'max'）。默认全部继承会话档位。
+// 这是给「任务批量大、单个任务机械」的 spec 用的旋钮：把 impl 压到 low 通常安全，
+// review 不要轻易压——判定质量正是这道闸门的全部价值。压之前先看清楚这个 spec 的任务
+// 是不是真的只是照着 design 誊写；如果需要设计判断，降档省下的时间会在 debug 轮里还回去。
+const EFFORTS = Object.assign({ impl: null, review: null, debug: null, critic: null }, A.efforts || {})
 
 // ── skill 调用规约（注入每个子代理的 prompt）──────────────────────
 // 子代理有 Skill 工具；宿主未注册项目级 kiro-* 时，回退读 kiro skill 自带的阶段规范。
@@ -78,6 +118,9 @@ const IMPL_SCHEMA = {
     files_changed: { type: 'array', items: { type: 'string' } },
     verification: { type: 'string' },
     learnings: { type: 'array', items: { type: 'string' } },
+    // 实现者自己觉得复查者该重点看的地方。非空是升级到三视角复查的触发条件之一，
+    // 所以它不是可有可无的礼貌字段——诚实填写会换来更严格的复查，隐瞒则相反。
+    concerns: { type: 'array', items: { type: 'string' } },
     needs_manual_verify: { type: 'boolean' },
     status: { type: 'string', enum: ['done', 'blocked'] },
     blocker: { type: 'string' },
@@ -208,14 +251,31 @@ ${skillRule([
 7. 卡死时 status="blocked" 并在 blocker 里写清现象与已试过的手段，不要假装完成。
 
 ## 返回（结构化）
-files_changed / verification / learnings / needs_manual_verify / status(done|blocked) / blocker`
+files_changed / verification / learnings / concerns / needs_manual_verify / status(done|blocked) / blocker
+
+\`concerns\`：你希望复查者重点看的地方——边界外可能被影响的东西、你没能验证的假设、绕过的坑。
+非空会让本任务从单名复查者升级为三视角对抗复查，所以照实写；隐瞒换来的是更弱的复查，不是更快的通过。`
 }
 
-function reviewPrompt(task, impl, lens) {
+function reviewPrompt(task, impl, lens, breach) {
   const lensBlock = lens
     ? `\n## 你的复查视角（只从这个视角挖，挖深挖透，别面面俱到）
 ${LENSES[lens]}
 其他视角有别的复查者并发负责，你不必兼顾；发现越界问题可在 reasons 里附一句，但判定只依据你的视角。\n`
+    : `\n## 你是本任务**唯一**的复查者
+按 kiro-review 协议把 12 项检查全部跑一遍——验收覆盖、边界、证据三类都归你，没有人并发兜底。
+（高风险任务才拆三视角；本任务经机械判据判定为常规任务，所以由你一人独立完成完整复查。）\n`
+  // 边界预筛结果由编排层用纯数据比对得出，直接给你，省掉自己逐个比对的往返。
+  // 注意它只是定位，不是判定：design 要求改的文件而 tasks.md 边界漏列，责任在标注不在实现者。
+  const breachBlock = breach && breach.length
+    ? `\n## ⚠ 边界预筛：有改动落在声明的写入集之外
+${breach.map((f) => `- ${f}`).join('\n')}
+声明的写入集：${(task.files || []).join(', ') || '（未声明）'}
+
+判断它属于哪一种，不要默认第一种：
+1. 实现者跑偏／越权改了别人的东西 → reject
+2. design 要求本任务改这个文件（常见于测试文件），而 tasks.md 的 \`_Boundary:_\` 漏列了它
+   → **不 reject**，在 reasons 里写明"边界标注漏列 <文件>"，修的是标注不是代码\n`
     : ''
   return `对抗性验收一个已实现的 kiro 任务。**你不写代码、不修改任何文件**，只读、只判定。
 ${lensBlock}
@@ -229,6 +289,7 @@ ${rootBlock}
   - 改动文件：${JSON.stringify(impl.files_changed || [])}
   - 自测结果：${impl.verification || '（无）'}
 
+${breachBlock}
 ## 首要证据
 自己跑 \`git diff\`（必要时 \`git status --porcelain\`）读真实改动，以 diff 为准，不以实现者的自述为准。
 ${(!lens || lens === 'evidence') ? `
@@ -287,6 +348,7 @@ async function runOnce(task, repair) {
   }
   if (AT.impl) implOpts.agentType = AT.impl
   if (MODELS.impl) implOpts.model = MODELS.impl
+  if (EFFORTS.impl) implOpts.effort = EFFORTS.impl
   if (par && !dryRun && isolation) implOpts.isolation = isolation
 
   const impl = await agent(implementPrompt(task, repair), implOpts)
@@ -297,24 +359,34 @@ async function runOnce(task, repair) {
   }
   if (!review || dryRun || impl.needs_manual_verify) return { impl, verdict: null, failure: null }
 
-  // 多视角并发复查：每个视角一名复查者，同时派出，多数决
-  const votes = (await parallel(lenseKeys.map((lens) => () => {
+  // 复查强度按任务风险定：默认一名全项复查者，高风险才上三视角。
+  // 越界（边界预筛命中）本身就是风险信号——它要么是实现者跑偏，要么是 tasks.md 的边界漏标，
+  // 两种都需要 boundary 视角亲自判，所以强制升级。
+  const breach = boundaryDiff(task, impl)
+  const escalate = highRisk(task, impl) || !!breach
+  const lenses = escalate ? lenseKeys : [null]   // null → 单名复查者跑完整 12 项协议
+
+  const votes = (await parallel(lenses.map((lens) => () => {
     const vOpts = {
-      label: lenseKeys.length > 1 ? `review:${task.id}:${lens}` : `review:${task.id}`,
+      label: lens ? `review:${task.id}:${lens}` : `review:${task.id}`,
       phase: 'Review',
       schema: VERDICT_SCHEMA,
     }
     if (AT.review) vOpts.agentType = AT.review
     if (MODELS.review) vOpts.model = MODELS.review
-    return agent(reviewPrompt(task, impl, lenseKeys.length > 1 ? lens : null), vOpts)
-      .then((v) => (v ? Object.assign({ lens }, v) : null))
+    if (EFFORTS.review) vOpts.effort = EFFORTS.review
+    return agent(reviewPrompt(task, impl, lens, breach), vOpts)
+      .then((v) => (v ? Object.assign({ lens: lens || 'full' }, v) : null))
   }))).filter(Boolean)
 
   if (!votes.length) return { impl, verdict: null, failure: null }   // 复查者全挂掉不算任务失败
 
   const rejects = votes.filter((v) => v.verdict === 'reject')
   const verdict = {
-    verdict: rejects.length >= REJECT_THRESHOLD ? 'reject' : 'pass',
+    lenses: votes.map((v) => v.lens),
+    escalated: escalate,
+    boundaryBreach: breach,
+    verdict: rejects.length >= rejectThreshold(votes.length) ? 'reject' : 'pass',
     reasons: rejects.flatMap((v) => (v.reasons || []).map((r) => `[${v.lens}] ${r}`)),
     suggestions: votes.flatMap((v) => (v.suggestions || []).map((s) => `[${v.lens}] ${s}`)),
     votes: votes.map((v) => ({ lens: v.lens, verdict: v.verdict })),
@@ -340,6 +412,7 @@ async function runTask(task) {
     const dOpts = { label: `debug:${task.id}`, phase: 'Debug', schema: DEBUG_SCHEMA }
     if (AT.debug) dOpts.agentType = AT.debug
     if (MODELS.debug) dOpts.model = MODELS.debug
+    if (EFFORTS.debug) dOpts.effort = EFFORTS.debug
     const dbg = await agent(debugPrompt(task, r.failure), dOpts)
     if (!dbg) break
     lastDebug = dbg
@@ -357,7 +430,7 @@ async function runTask(task) {
 }
 
 // ── 主编排：Phase 串行 → 组内并行 ────────────────────────────────
-log(`kiro-spec-exec｜${feature}｜parallel=${par} review=${review}(${lenseKeys.join('+')}) debug=${debugOn} ultracode=${ultra} dryRun=${dryRun} model.impl=${MODELS.impl || '(继承)'} isolation=${isolation || '关闭'}`)
+log(`kiro-spec-exec｜${feature}｜parallel=${par} review=${review}(${ultra ? `默认单名全项 · 高风险升级 ${lenseKeys.join('+')}` : lenseKeys.join('+')}) debug=${debugOn} ultracode=${ultra} dryRun=${dryRun} model.impl=${MODELS.impl || '(继承)'} isolation=${isolation || '关闭'}`)
 if (projectRoot) log(`项目根：${projectRoot}`)
 
 const results = []
@@ -389,6 +462,16 @@ const blocked = results.filter((r) =>
   (r.status === 'failed' && !(r.verdict && r.verdict.verdict === 'reject')))
 
 log(`完成 ${done.length}｜打回 ${rejected.length}｜待人工 ${manual.length}｜受阻 ${blocked.length}`)
+
+// 复查预算实况：升级了几个、总共派了多少复查者。低升级率说明判据可能过松，
+// 高升级率（>半数）说明这批任务本身粒度偏大，该回头看 tasks.md 而不是调判据。
+if (review && !dryRun) {
+  const reviewed = results.filter((r) => r.verdict && r.verdict.lenses)
+  const escalated = reviewed.filter((r) => r.verdict.escalated)
+  const breached = reviewed.filter((r) => r.verdict.boundaryBreach)
+  const agents = reviewed.reduce((n, r) => n + r.verdict.lenses.length, 0)
+  log(`复查：${reviewed.length} 个任务派出 ${agents} 名复查者（升级三视角 ${escalated.length}，其中边界预筛命中 ${breached.length}）；全上三视角本会是 ${reviewed.length * lenseKeys.length} 名`)
+}
 
 // ── 收尾完整性批评（ultracode）───────────────────────────────────
 // 逐任务复查只看得见单个任务；跨任务的接缝、集成漏洞、"整体上还差什么"没人负责。
@@ -449,7 +532,8 @@ ${skillRule([
 ## 返回（结构化）
 gaps[{kind, detail, evidence, suggested_action}] / overall(coherent|gaps-found)`,
     Object.assign({ label: 'critic:completeness', phase: 'Critic', schema: CRITIC_SCHEMA },
-      MODELS.critic ? { model: MODELS.critic } : {}),
+      MODELS.critic ? { model: MODELS.critic } : {},
+      EFFORTS.critic ? { effort: EFFORTS.critic } : {}),
   )
   if (critique) {
     log(`完整性批评：${critique.overall}${critique.gaps ? `（${critique.gaps.length} 条缺口）` : ''}`)

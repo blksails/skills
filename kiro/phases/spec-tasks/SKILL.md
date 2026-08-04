@@ -137,7 +137,7 @@ Before writing `tasks.md`, run one lightweight independent sanity review of the 
 
 ## Critical Constraints
 - **Task Integration**: Every task must connect to the system (no orphaned work)
-- **Boundary annotations**: Required for `(P)` tasks, recommended for all (`_Boundary: ComponentName_`)
+- **Boundary annotations**: Required on **every** task, and always with backtick-quoted paths — `_Boundary: ComponentName — `src/x/`, `test/x.test.ts`_`. A task whose write set the scheduler cannot read is treated as colliding with everything and serializes its whole layer; a bare component name is not enough. List every file the task touches, test files included
 - **Explicit dependencies**: Cross-boundary non-obvious dependencies declared with `_Depends: X.X_`
 - **Executable deliverable granularity**: Each task must produce a verifiable deliverable (file, endpoint, UI component, config). Infrastructure tasks (project scaffolding, manifest, host integration, build config) must be explicit — never assume they exist
 - **Observable done state**: Each executable sub-task must include at least one detail bullet that makes the completed state visible without adding new bookkeeping fields

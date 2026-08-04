@@ -65,15 +65,21 @@ Focus on capabilities and outcomes, not code structure.
 - Helps validate parallel safety: tasks with non-overlapping boundaries are parallel candidates
 - Helps agents understand scope: what to touch and what not to touch
 
-**When to use**: Required for tasks marked `(P)` to validate parallel safety. Omit for sequential tasks where scope is obvious from the description.
+**When to use: every task, without exception** — and always with backtick-quoted paths, not just a component name.
 
-**`_Boundary:_` must be machine-decidable for `(P)` tasks.** Principle 1 tells the task *description* to avoid file paths — that rule is about prose, and it does **not** apply to this annotation. `impl` wave mode and `parse-tasks.mjs` both decide "can these two run concurrently?" by intersecting write sets, and a component name only works if the same name reliably maps to the same files. So for any `(P)` task, write the boundary as the actual write set:
+This used to say "omit for sequential tasks where scope is obvious." That exemption is what makes plans serial. `parse-tasks.mjs` decides concurrency by intersecting write sets, and a task whose write set it cannot read is treated as **colliding with everything**, so it runs alone in its own group (`overlaps()` returns `true` when either side's file set is unknown). One unannotated task in a layer doesn't just fail to parallelize itself — it becomes a serialization point for the whole layer. A plan where half the tasks lack paths reliably reports `maxGroupWidth: 2–3` no matter how independent the work actually is.
+
+The cost is wall clock, and it is linear: group count × (implement + review) round-trips, all of them serialized against each other. Dropping from width 3 to width 8 on a 28-task spec is the difference between ~10 groups and ~4.
+
+**`_Boundary:_` must be machine-decidable.** Principle 1 tells the task *description* to avoid file paths — that rule is about prose, and it does **not** apply to this annotation. A component name only works if the same name reliably maps to the same files. Write the boundary as the actual write set:
 
 ```
 _Boundary: AuthService — `src/auth/`, `src/auth/session.ts`_
 ```
 
 Component name for humans, backtick-quoted paths for the scheduler. Without the paths, the scheduler cannot prove the write sets are disjoint, falls back to "assume collision", and the whole plan degrades to serial — the `(P)` markers end up decorative. If a task's write set genuinely cannot be stated up front, that is a signal the task is under-specified, not a reason to omit the annotation.
+
+**Aim for group width ≈ the host's concurrency budget.** The workflow runs at most `min(16, cores − 2)` subagents at once — 8 on a 10-core machine. Boundaries that are too coarse (`_Boundary: src/_` on every task) collapse everything into one collision class; boundaries that are honest and specific let a layer fan out to that width. Width beyond the budget is not wasted (the harness queues it), but width far below it is pure idle capacity.
 
 **The boundary must list *every* file the task has to touch — including test files.** Implementers read `_Boundary:_` as the authoritative scope and will not go outside it; that is the whole point of the annotation. So when design requires a task to also fix or add a test, and the boundary names only the production file, the implementer correctly concludes the test is out of scope — and the task ships with no real verification behind it.
 
