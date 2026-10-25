@@ -13,14 +13,12 @@ BlackSail 团队 Skill 的统一目录与协作仓库。这里维护团队共同
 - 在 Session Start 提醒成员更新、安装必装项和迁移废弃项。
 - 通过 PR、跨平台 CI 和明确负责人维护长期质量。
 
-## 成员快速开始
+## 一键安装
 
-要求：Git、Node.js 22.20+。
+要求：Git、Node.js 22.20+。下面这条命令会通过标准 `npx skills` 一次安装团队必装项和推荐项，无需提前 clone 仓库：
 
 ```bash
-git clone git@github.com:blksails/skills.git ~/.blacksail-skills
-
-npx skills add ~/.blacksail-skills -g -a '*' \
+npx --yes skills@1.7.4 add https://github.com/blksails/skills -g -a "*" \
   -s human-acceptance-gate -s deploy -s autoresearch-skill -y
 ```
 
@@ -30,6 +28,19 @@ npx skills add ~/.blacksail-skills -g -a '*' \
 - `autoresearch-skill` 是团队推荐项。
 - optional Skill 由成员按工作需要安装。
 
+`-a "*"` 会安装到 `npx skills` 检测到的全部 Agent。只安装到单个 Agent 时，改为 `-a codex`、`-a claude-code`、`-a gemini-cli` 或 `-a opencode`。
+
+## 启用团队更新提醒
+
+只有 Session Start 更新检查是本仓库的扩展能力。需要该能力时，再保留一份本地 checkout：
+
+```bash
+git clone git@github.com:blksails/skills.git ~/.blacksail-skills
+~/.blacksail-skills/hooks/session-start
+```
+
+首次执行第二行会立即检查仓库更新和团队采用策略；随后把对应入口配置为 Agent 的 Session Start Hook。
+
 安装固定版本的外部 Skill：
 
 ```bash
@@ -37,7 +48,7 @@ npx skills add https://github.com/nicobailon/visual-explainer/tree/v0.14.0/plugi
   -g -a codex -s visual-explainer -y
 ```
 
-`npx skills` 负责各 Agent 的目录、共享链接和 copy 降级。要安装到单个 Agent，将 `-a '*'` 改为 `-a codex`、`-a claude-code`、`-a gemini-cli` 或 `-a opencode`。
+`npx skills` 负责各 Agent 的目录、共享链接和 copy 降级。
 
 ## 日常更新
 
@@ -147,7 +158,7 @@ node skills/human-acceptance-gate/scripts/validate-registry.mjs
 npx --yes skills@1.7.4 add . --list
 ```
 
-CI 会在 Linux、macOS 和 Windows 上验证目录结构、策略、Python 3.9 兼容性和 `npx skills` 发现结果。
+CI 会在 Linux、macOS 和 Windows 上验证目录结构、策略、Python 3.11 兼容性和 `npx skills` 发现结果。
 
 ## 卸载
 
