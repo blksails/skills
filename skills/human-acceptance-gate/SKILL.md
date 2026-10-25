@@ -18,6 +18,7 @@ Maintain a traceable chain from the current Git project and its changed service 
 - Require environment, tester, time, and evidence for every affected flow. Never auto-check the PR box or invent those values.
 - When an agent is about to run `git commit` and detection returns one or more required flows, stop before committing and ask the user whether to generate a test-request report. This question is mandatory even when the surrounding task already authorized committing, deploying, or creating a PR.
 - A generated report is an application for a person to test, with status `待人类验收`; it is never proof that testing ran. If the user declines, proceed without a report and state that choice without weakening the acceptance gate.
+- After generating a report, include a short, plain-language WeChat message in the user-facing handoff. It is a notification for the tester, not acceptance evidence.
 - Distinguish automated checks from external completion. A passing unit test, HTTP acceptance, Toast, workflow ID, or local row does not prove a downstream platform terminal state.
 - Ignore documentation, screenshots, and isolated unit-test edits unless they also change service behavior.
 - Keep credentials, cookies, verification-file contents, real customer identity, and production payloads out of commit messages and PR evidence.
@@ -46,7 +47,7 @@ Read [references/repository-contract.md](references/repository-contract.md) befo
 2. If no required flow is returned, continue the repository's normal commit workflow.
 3. If one or more flows are returned, stop before `git commit` and ask exactly one concise blocking question in the user's language. In Chinese, use:
 
-   > 检测到以下流程必须由人类验收：<流程列表>。是否生成测试申请报告？报告只会创建“待人类验收”的申请，不代表测试已经通过。
+   > 检测到以下流程必须由人类验收：<流程列表>。是否生成“申请人工测试”报告？报告只会创建“待人类验收”的申请，不代表测试已经通过。
 
 4. If the user agrees, generate the report with:
 
@@ -55,6 +56,18 @@ Read [references/repository-contract.md](references/repository-contract.md) befo
    ```
 
    Show the generated path, inspect it for secrets and accurate scope, stage it with the task, then continue the commit.
+
+   In the same user-facing handoff, provide a copy-ready WeChat message of no more than five short lines:
+
+   ```text
+   微信通报：
+   麻烦帮忙测试一下「<流程名称>」。
+   测试环境：<已知环境；未知时写“待确认”>
+   重点检查：<用测试人员语言概括 1–3 个操作和预期结果>
+   测试说明：<验收文档链接>。完成后请回复“通过”；有问题请附截图和操作时间。
+   ```
+
+   Do not put file lists, commit trailers, credentials, customer data, or implementation jargon in this message. Do not describe testing as completed until a real tester supplies evidence.
 
 5. If the user declines, do not generate a placeholder or silently mark acceptance complete. Add the detector's stable trailers to the commit message and carry the affected flows into the PR description.
 6. Ask again only when the staged code set changes enough to trigger a different set of flows; do not repeatedly ask for the same staged set in one task.
