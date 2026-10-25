@@ -69,7 +69,7 @@ const flowSections = uniqueRules
   .join("\n");
 const changedFileLines = change.files.map((file) => `- \`${file}\``).join("\n");
 
-const report = `# 人类验收测试申请
+const report = `# 申请人工测试
 
 > 本文件是提交前生成的测试申请，状态为“待人类验收”。它不表示测试已经执行或通过。
 
