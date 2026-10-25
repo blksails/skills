@@ -1,149 +1,169 @@
-# blksails/skills
+# BlackSail Team Skills
 
-> Two Claude Code skills for driving long-running work end to end:
-> **`kiro`** — a spec-driven development pipeline with human approval gates and adversarial review.
-> **`autoresearch`** — an autonomous experiment loop that keeps iterating while you sleep.
+BlackSail 团队 Skill 的统一目录与协作仓库。这里维护团队共同使用的 Skill、采用策略、外部来源锁定、质量门禁和成员更新提示。
 
-Both are heavyweight, multi-file skills: they carry their own phase specs, rules, templates, and scripts rather than being a single prompt file.
+安装、更新和卸载统一交给社区标准工具 `npx skills`。本仓库不重复实现包管理器，只补充企业团队需要的治理能力。
 
----
+## 我们解决什么问题
 
-## kiro — spec-driven development pipeline
+- 为团队提供一份可评审、可追踪、可回滚的 Skill 目录。
+- 让 Codex、Claude Code、Gemini CLI、OpenCode 等 Agent 使用一致的团队能力。
+- 用 required、recommended、optional、deprecated 管理采用阶段。
+- 将内部 Skill 与固定版本的外部 Skill 放在同一治理清单中。
+- 在 Session Start 提醒成员更新、安装必装项和迁移废弃项。
+- 通过 PR、跨平台 CI 和明确负责人维护长期质量。
 
-**55 files · 中文 · `/kiro`**
+## 成员快速开始
 
-Kiro-style spec-driven development, run as one skill with all phase specs inside it. Work flows through `discovery → steering → requirements → design → tasks → impl → validate`, and **every phase stops at a human approval gate** before the next one starts.
-
-### Directory contract
-
-| Purpose | Path |
-|---|---|
-| Project steering (one per project, shared by all specs) | `.kiro/steering/{product,tech,structure}.md` |
-| A single feature's spec | `.kiro/specs/<feature>/{spec.json,requirements.md,design.md,tasks.md}` |
-| Multi-spec roadmap | `.kiro/steering/roadmap.md` |
-
-### Subcommands
-
-| Command | What it does |
-|---|---|
-| `/kiro` | Probe state, report, suggest the next step, wait for confirmation |
-| `/kiro init` | Build or sync steering files from the existing codebase |
-| `/kiro discovery "<idea>"` | Triage: new spec / amend an existing one / split into several / no spec needed |
-| `/kiro spec <name>` | Create the spec directory, then flow into requirements |
-| `/kiro requirements\|design\|tasks [feature]` | Enter that phase directly |
-| `/kiro quick "<description>" [--auto]` | init → requirements → design → tasks in one run |
-| `/kiro batch` | Create every spec on the roadmap, in parallel by dependency wave |
-| `/kiro next` | Do exactly **one** unchecked task, in the main conversation |
-| `/kiro run [feature] [task-numbers]` | Implementation. ≥3 pending tasks defaults to Workflow orchestration |
-| `/kiro run --wave [feature]` | Concurrent waves that stay in the main conversation |
-| `/kiro status [feature]` | Where the spec stands and what's next |
-| `/kiro validate gap\|design\|impl <feature>` | Gap analysis / design review / feature-level acceptance |
-
-### How implementation actually runs
-
-`impl` never lets a task mark itself done. Each task goes **implementer → independent reviewer → (on failure) root-cause debugger**, with bounded rounds — max 2 review remediations, then max 2 debug rounds, then the task is blocked rather than looped on.
-
-With ≥3 pending tasks it hands the whole task graph to a Workflow script: groups run concurrently by disjoint write set, each task is reviewed by **three adversarial lenses** (`acceptance` / `boundary` / `evidence`) voting by majority, and a completeness critic sweeps the finished batch for cross-task seams no per-task review can see.
-
-**Test execution is split by role**, which is what keeps a wide run affordable:
-
-| Actor | Runs |
-|---|---|
-| implementer | only the tests inside its own `_Boundary:_`, plus typecheck and lint |
-| reviewer (`evidence` lens) | the canonical full suite — **this run is the regression verdict** |
-| parent controller | the full suite once over the merged batch, then feature-level validation |
-
-An implementer's full-suite run would prove nothing the reviewer accepts, and under concurrency it makes implementers chase sibling tasks' failures — so they don't get the command.
-
-### Layout
-
-```
-kiro/
-├── SKILL.md              # router: state detection, approval gates, execution modes
-├── phases/<phase>/       # the full spec for each phase, plus its rules/ and templates/
-│   ├── steering/  discovery/  spec-init/  spec-requirements/  spec-design/
-│   ├── spec-tasks/  spec-batch/  spec-quick/  impl/  review/  debug/
-│   └── validate-gap/  validate-design/  validate-impl/  verify-completion/
-├── rules/                # parallel-dispatch.md, phase-handoff.md
-├── workflows/            # parse-tasks.mjs, spec-exec.workflow.js, recover-run.mjs
-└── assets/templates/     # bootstrap copies of .kiro/settings/templates/
-```
-
-Requires Node.js for the `workflows/` scripts, and a host with the Workflow tool for the concurrent execution mode. Everything else degrades to sequential dispatch.
-
----
-
-## autoresearch — autonomous experiment loop
-
-**44 files · EN · `/autoresearch:*`**
-
-An autonomous research and experimentation toolkit: define a mechanical evaluation, then let the loop iterate — with overnight persistence and no external dependencies. Inspired by Karpathy's autoresearch, generalized to any domain where success can be measured mechanically.
-
-| Command | What it does |
-|---|---|
-| `/autoresearch:plan` | 7-step setup wizard → produces `research.md` |
-| `/autoresearch:debug` | Scientific bug hunting with falsifiable hypotheses |
-| `/autoresearch:fix` | Iterative error crusher, auto-stops at zero errors |
-| `/autoresearch:predict` | Multi-persona deliberation with anti-herd detection |
-| `/autoresearch:security` | STRIDE + OWASP iterative audit |
-| `/autoresearch:scenario` | 12-dimension scenario exploration |
-| `/autoresearch:reason` | Adversarial refinement with a blind-judge panel |
-| `/autoresearch:ship` | Universal shipping workflow (9 ship types) |
-| `/autoresearch:learn` | Turn feedback and failures into an improvement plan + eval |
-
-```
-autoresearch-skill/
-├── SKILL.md          # command routing + the inline core loop
-├── skills/<cmd>/     # one sub-skill per command
-├── guide/            # long-form guide per command, plus advanced patterns and chaining
-├── scripts/          # autoresearch-loop.sh, check_progress.sh, init_research.py, release.sh
-├── references/
-└── assets/
-```
-
-Needs bash and Python 3 for the overnight loop scripts. Interactive use needs neither.
-
----
-
-## Install
-
-Symlink into your global skills directory:
+要求：Git、Node.js 22.20+。
 
 ```bash
-git clone https://github.com/blksails/skills.git ~/src/blksails-skills
-ln -s ~/src/blksails-skills/kiro              ~/.claude/skills/kiro
-ln -s ~/src/blksails-skills/autoresearch-skill ~/.claude/skills/autoresearch-skill
+git clone git@github.com:blksails/skills.git ~/.blacksail-skills
+
+npx skills add ~/.blacksail-skills -g -a '*' \
+  -s human-acceptance-gate -s deploy -s autoresearch-skill -y
 ```
 
-Or per project, so the skill travels with the repo:
+其中：
+
+- `human-acceptance-gate`、`deploy` 是团队必装项。
+- `autoresearch-skill` 是团队推荐项。
+- optional Skill 由成员按工作需要安装。
+
+安装固定版本的外部 Skill：
 
 ```bash
-mkdir -p .claude/skills
-cp -r ~/src/blksails-skills/kiro .claude/skills/
+npx skills add https://github.com/nicobailon/visual-explainer/tree/v0.14.0/plugins/visual-explainer \
+  -g -a codex -s visual-explainer -y
 ```
 
-Restart Claude Code, then check `/context` to confirm the skill loaded. Invoke with `/kiro` or `/autoresearch:plan`, or just describe the task — both skills declare trigger conditions in their frontmatter and load themselves when your request matches.
+`npx skills` 负责各 Agent 的目录、共享链接和 copy 降级。要安装到单个 Agent，将 `-a '*'` 改为 `-a codex`、`-a claude-code`、`-a gemini-cli` 或 `-a opencode`。
 
----
+## 日常更新
 
-## Notes
+```bash
+cd ~/.blacksail-skills
+git pull --ff-only
+npx skills update -g -y
+```
 
-`kiro` is written in Chinese: its phase specs, prompts, and reports are all 中文. It drives an English-thinking agent fine, but read it before adapting.
+手动检查团队仓库：
 
-Both skills assume a host that can dispatch subagents concurrently. On a host without that, `kiro` degrades to sequential single-task dispatch and says so explicitly instead of silently pretending to parallelize.
+```bash
+~/.blacksail-skills/bin/team-skills check-update --force --verbose
+```
 
----
+当前 npm 最新 `skills@1.7.4` 尚未发布文档中的 `skills check`，所以仓库更新检查暂由本项目提供。安装生命周期仍完全由 `npx skills` 管理。
 
-## Contributing
+## Session Start 团队提醒
 
-Please don't commit real personal data — names, phone numbers, credentials — in examples. Use obvious placeholders.
+把对应入口配置为 Agent 的 Session Start Hook：
 
-The `.gitignore` is a whitelist: nothing is tracked unless it's listed there. To publish another skill, add an explicit `!/your-skill/` line.
+```text
+macOS/Linux: ~/.blacksail-skills/hooks/session-start
+PowerShell:   %USERPROFILE%\.blacksail-skills\hooks\session-start.ps1
+CMD:          %USERPROFILE%\.blacksail-skills\hooks\session-start.cmd
+```
 
----
+Hook 只检查和提示，不自动修改成员环境：
 
-## License
+1. 最多每 6 小时检查一次企业仓库更新，默认 3 秒超时。
+2. 通过 `npx skills list -g --json` 检查当前 Agent 的团队策略。
+3. 为缺失必装项、推荐项和已安装废弃项输出标准 `npx skills` 命令。
 
-MIT.
+通过 `TEAM_SKILLS_AGENT` 指定当前 Agent：`codex`、`claude`、`gemini` 或 `opencode`；默认是 `codex`。
 
-**Last updated:** 2026-08-04
+## 团队采用策略
+
+唯一策略来源是 `catalog.json`：
+
+- `required`：所有团队成员必须安装，Session Start 强提示。
+- `recommended`：大多数成员受益，Session Start 建议安装。
+- `optional`：特定角色或任务按需安装。
+- `deprecated`：停止新采用；已安装成员会收到迁移提示。
+
+策略变更必须通过 PR。升级为 required 或进入 deprecated 时，PR 需要说明团队影响、迁移方式和负责人。
+
+当前有效目录：
+
+| Skill | 来源 | 策略 | 用途 |
+|---|---|---|---|
+| `human-acceptance-gate` | 内部 | required | 提交前识别人类验收流程与证据要求 |
+| `deploy` | 内部 | required | 统一提交、PR、合并、发布和核验流程 |
+| `autoresearch-skill` | 内部 | recommended | 可机械评估任务的自主研究与迭代 |
+| `visual-explainer` | 官方 `v0.14.0` | optional | HTML 图解、架构图、评审和演示文稿 |
+
+## 团队协作流程
+
+### 新增内部 Skill
+
+1. 从 `templates/skill/` 创建 `skills/<name>/SKILL.md`。
+2. 只加入能改变 Agent 决策的团队知识、确定流程和风险约束。
+3. 在 `catalog.json` 登记负责人、标签、稳定性和采用策略。
+4. 运行本地验证并提交 PR。
+5. 由非作者按照 `best-practices/review-checklist.md` 复核触发边界、权限和失败恢复。
+
+### 引入外部 Skill
+
+外部源码不复制进本仓库。在 `catalog.json` 记录：
+
+- 官方 Git URL；
+- 固定 tag 或完整 commit；
+- Skill 子目录；
+- 许可证；
+- BlackSail 维护负责人。
+
+升级外部版本时先复核上游 diff、依赖和许可证，再修改锁定版本。禁止使用 `main`、`latest` 等漂移引用。
+
+### 调整团队策略
+
+- optional → recommended：已有稳定使用证据，适用于多数成员。
+- recommended → required：说明不安装会破坏的团队流程。
+- 任意状态 → deprecated：提供替代方案和迁移窗口。
+- 移除目录项：只能在废弃迁移完成后进行。
+
+## 仓库结构
+
+```text
+.
+├── catalog.json                 # Skill 元数据与团队采用策略
+├── skills/                      # 内部维护的 Skill
+├── best-practices/              # 编写规范与评审清单
+├── templates/skill/             # 新 Skill 最小模板
+├── hooks/                       # 跨平台 Session Start 检查
+├── scripts/team_skills.py       # 企业策略与仓库更新检查
+├── bin/                         # macOS/Linux、PowerShell、CMD 入口
+└── tests/                       # 目录和策略测试
+```
+
+## 维护与验证
+
+```bash
+./bin/team-skills list
+./bin/team-skills doctor
+./bin/team-skills check-policy --agent codex
+python3 -m unittest discover -s tests
+node skills/human-acceptance-gate/scripts/validate-registry.mjs
+npx --yes skills@1.7.4 add . --list
+```
+
+CI 会在 Linux、macOS 和 Windows 上验证目录结构、策略、Python 3.9 兼容性和 `npx skills` 发现结果。
+
+## 卸载
+
+安装记录由 `npx skills` 管理。成员可交互选择：
+
+```bash
+npx skills remove -g
+```
+
+也可以按名称或 Agent 精确卸载：
+
+```bash
+npx skills remove human-acceptance-gate deploy autoresearch-skill visual-explainer \
+  -g -a codex -y
+```
+
+卸载 Skill 不会删除本仓库 checkout；保留 checkout 可继续接收团队策略和更新提醒。
+
+贡献细则见 `CONTRIBUTING.md`，Skill 编写规范见 `best-practices/authoring.md`。

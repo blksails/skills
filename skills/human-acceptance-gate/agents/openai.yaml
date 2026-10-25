@@ -1,0 +1,4 @@
+interface:
+  display_name: "人类验收门禁"
+  short_description: "检测高风险改动，并在提交前询问是否生成测试申请"
+  default_prompt: "Use $human-acceptance-gate to identify the Git project, detect affected high-risk integrations, ask before commit whether to generate a pending human test-request report, and maintain commit and PR evidence gates."

@@ -2,9 +2,23 @@
 # 这样新增/试验中的 skill 不会被误推——想发布就在下面显式加一行。
 /*
 !/.gitignore
+!/.gitattributes
 !/README.md
-!/kiro/
-!/autoresearch-skill/
+!/LICENSE
+!/catalog.json
+!/CONTRIBUTING.md
+!/.github/
+!/best-practices/
+!/bin/
+!/hooks/
+!/scripts/
+!/templates/
+!/tests/
+!/skills/
+
+# 本仓库工具运行时生成的缓存。
+**/__pycache__/
+*.py[cod]
 
 # 以下曾经出现过、明确不公开的内容，即使将来改回黑名单模式也不要收录：
 #   resume-processor/            第三方个人信息（候选人姓名、电话）
@@ -12,4 +26,3 @@
 #   aliyun-voice-call/config.env 本机手机号
 #   cmux-*, find-skills, web-design-guidelines
 #                                指向 ~/.agents/skills/ 的符号链接，在仓库里是断链
-#   skills/                      与顶层同名目录的重复嵌套副本
