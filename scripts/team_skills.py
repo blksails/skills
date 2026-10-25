@@ -32,6 +32,14 @@ class TeamSkillsError(RuntimeError):
     pass
 
 
+def configure_console() -> None:
+    """Use UTF-8 for Chinese CLI output on Windows and redirected streams."""
+    for stream in (sys.stdout, sys.stderr):
+        reconfigure = getattr(stream, "reconfigure", None)
+        if reconfigure is not None:
+            reconfigure(encoding="utf-8", errors="replace")
+
+
 def load_json(path: Path) -> dict[str, Any]:
     try:
         value = json.loads(path.read_text(encoding="utf-8"))
@@ -276,6 +284,7 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main() -> int:
+    configure_console()
     args = build_parser().parse_args()
     try:
         if args.command == "check-update":
