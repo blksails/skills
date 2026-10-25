@@ -1,0 +1,58 @@
+{
+  "schema_version": 1,
+  "organization": "BlackSail",
+  "policy": {
+    "required": ["human-acceptance-gate", "deploy"],
+    "recommended": ["autoresearch-skill"],
+    "deprecated": ["kiro"]
+  },
+  "skills": [
+    {
+      "id": "kiro",
+      "path": "skills/kiro",
+      "description": "规格驱动的研发流程，覆盖需求、设计、任务、实施和验证。",
+      "owners": ["platform-team"],
+      "tags": ["engineering", "spec-driven"],
+      "stability": "deprecated"
+    },
+    {
+      "id": "autoresearch-skill",
+      "path": "skills/autoresearch-skill",
+      "description": "面向可机械评估任务的自主研究与迭代工具包。",
+      "owners": ["platform-team"],
+      "tags": ["research", "automation"],
+      "stability": "stable"
+    },
+    {
+      "id": "deploy",
+      "path": "skills/deploy",
+      "description": "BlackSail 内部提交、合并、部署和线上核验流程。",
+      "owners": ["platform-team"],
+      "tags": ["internal", "delivery", "deployment"],
+      "stability": "stable"
+    },
+    {
+      "id": "human-acceptance-gate",
+      "path": "skills/human-acceptance-gate",
+      "description": "基于 GitHub 项目和变更路径执行强制人类验收提醒、测试申请与 PR 证据门禁。",
+      "owners": ["platform-team"],
+      "tags": ["internal", "governance", "acceptance", "git"],
+      "stability": "stable"
+    },
+    {
+      "id": "visual-explainer",
+      "source": {
+        "kind": "git",
+        "url": "https://github.com/nicobailon/visual-explainer.git",
+        "ref": "v0.14.0",
+        "ref_type": "tag",
+        "subpath": "plugins/visual-explainer",
+        "license": "MIT"
+      },
+      "description": "从官方上游安装的 HTML 图解、架构图、评审和演示文稿 Skill。",
+      "owners": ["platform-team"],
+      "tags": ["external", "visualization", "documentation"],
+      "stability": "stable"
+    }
+  ]
+}

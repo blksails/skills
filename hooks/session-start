@@ -1,0 +1,7 @@
+#!/usr/bin/env sh
+# Startup hooks must never prevent the host application from starting.
+set +e
+HOOK_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+python3 "$HOOK_DIR/../scripts/team_skills.py" check-update
+python3 "$HOOK_DIR/../scripts/team_skills.py" check-policy
+exit 0

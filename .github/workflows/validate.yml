@@ -1,0 +1,35 @@
+name: validate
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  skills:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.9"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22.20.0"
+      - run: python scripts/team_skills.py doctor
+      - run: npx --yes skills@1.7.4 add . --list
+      - run: python3 -m unittest discover -s tests
+        if: runner.os != 'Windows'
+      - run: python -m unittest discover -s tests
+        if: runner.os == 'Windows'
+      - run: ./bin/team-skills list
+        if: runner.os != 'Windows'
+      - run: .\bin\team-skills.cmd list
+        if: runner.os == 'Windows'

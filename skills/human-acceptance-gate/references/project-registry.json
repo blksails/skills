@@ -1,0 +1,346 @@
+{
+  "version": 1,
+  "defaults": {
+    "excludeGlobs": [
+      "**/*.test.*",
+      "**/*.spec.*",
+      "**/*_test.go",
+      "**/*.snapshot.*",
+      "**/articles/**",
+      "**/snapshots/**",
+      "**/docs/**",
+      "**/*.md",
+      "**/*.mdx",
+      "**/*.jpg",
+      "**/*.jpeg",
+      "**/*.png"
+    ],
+    "reportDirectory": ".human-acceptance/reports"
+  },
+  "projects": [
+    {
+      "source": "github.com/blksails/webapp",
+      "rules": [
+        {
+          "id": "feedback",
+          "role": "caller",
+          "target": "github.com/blksails/feedback",
+          "label": "人类验收 Feedback 数据闭环",
+          "docs": "/docs/pages/admin/internal-testing/feedback",
+          "match": {
+            "files": [
+              "apps/web/lib/install-guide.ts",
+              "apps/web/app/(console)/[company_namespace]/advertiser/setting/[account_id]/edit/page.tsx",
+              "apps/web/app/(console)/[company_namespace]/advertiser/setting/[account_id]/edit/floating-button-config.ts"
+            ],
+            "directories": ["apps/web/app/(home)/install/"],
+            "globs": [
+              "apps/web/lib/feedback-*",
+              "apps/web/app/(console)/[company_namespace]/data/realtime/lib/feedback-*",
+              "apps/web/app/(console)/[company_namespace]/data/realtime/hooks/use-feedback-*"
+            ]
+          }
+        },
+        {
+          "id": "wxwork-autoconfig",
+          "role": "caller",
+          "target": "github.com/blksails/wxwork",
+          "label": "人类验收企业微信 AutoConfig",
+          "docs": "/docs/pages/admin/internal-testing/wxwork-autoconfig",
+          "match": {
+            "files": [
+              "apps/web/public/schema/autoconfig_v2.schema.json",
+              "apps/web/lib/wxwork/apply-result.ts",
+              "apps/web/lib/wxwork/resource-config-name.ts",
+              "apps/web/lib/wxwork/resource-operation-log.ts",
+              "apps/web/app/(console)/[company_namespace]/wxwork/acquisition-links/actions.ts"
+            ],
+            "directories": [
+              "apps/web/app/(home)/api/wxwork/config/",
+              "apps/web/app/(console)/[company_namespace]/wxwork/configs/",
+              "apps/web/app/(console)/[company_namespace]/wxwork/contact-ways/"
+            ],
+            "globs": []
+          }
+        },
+        {
+          "id": "workflow-pushback",
+          "role": "caller",
+          "target": "github.com/blksails/workflow",
+          "label": "人类验收 workflow 回传闭环",
+          "docs": "/docs/pages/admin/internal-testing/workflow-pushback",
+          "match": {
+            "files": [
+              "apps/web/public/schema/pushback.schema.json",
+              "apps/web/public/schema/operator_callback.yaml",
+              "apps/web/app/(console)/[company_namespace]/advertiser/setting/[account_id]/edit/page.tsx"
+            ],
+            "directories": [
+              "apps/web/lib/workflows/",
+              "apps/web/app/(home)/api/wf/",
+              "apps/web/app/(console)/[company_namespace]/api/wf/",
+              "apps/web/app/(console)/[company_namespace]/conversions/pushes/",
+              "apps/web/app/(console)/[company_namespace]/conversions/tracks/"
+            ],
+            "globs": ["apps/web/public/schema/operator_callback.*"]
+          }
+        }
+      ]
+    },
+    {
+      "source": "github.com/blksails/admin",
+      "rules": [
+        {
+          "id": "ablink",
+          "role": "caller",
+          "target": "github.com/blksails/ablink",
+          "label": "人类验收 Ablink 管理与跳转链路",
+          "docs": "https://blksails.cn/docs/pages/admin/internal-testing/ablink",
+          "match": {
+            "files": [],
+            "directories": [
+              "app/ablinks/",
+              "app/api/ablinks/",
+              "app/api/ablink-templates/"
+            ],
+            "globs": []
+          }
+        }
+      ]
+    },
+    {
+      "source": "github.com/blksails/ablink",
+      "rules": [
+        {
+          "id": "ablink",
+          "role": "implementer",
+          "label": "人类验收 Ablink 管理与跳转链路",
+          "docs": "https://blksails.cn/docs/pages/admin/internal-testing/ablink",
+          "match": {
+            "files": ["main.go", "serve.go", "jump.go", "jsjump.go"],
+            "directories": ["services/ablink/"],
+            "globs": []
+          }
+        }
+      ]
+    },
+    {
+      "source": "github.com/blksails/feedback",
+      "rules": [
+        {
+          "id": "feedback",
+          "role": "implementer",
+          "label": "人类验收 Feedback 数据闭环",
+          "docs": "https://blksails.cn/docs/pages/admin/internal-testing/feedback",
+          "match": {
+            "files": [],
+            "directories": ["client/src/", "config/", "server/", "store/"],
+            "globs": []
+          }
+        },
+        {
+          "id": "workflow-pushback",
+          "role": "upstream",
+          "label": "人类验收 workflow 回传闭环",
+          "docs": "https://blksails.cn/docs/pages/admin/internal-testing/workflow-pushback",
+          "match": {
+            "files": [
+              "server/ingest.go",
+              "server/ingest_map.go",
+              "server/ingest_types.go",
+              "server/track_sink_ch.go",
+              "server/track_stream.go",
+              "server/track_writer.go"
+            ],
+            "directories": [],
+            "globs": []
+          }
+        }
+      ]
+    },
+    {
+      "source": "github.com/blksails/rtt",
+      "rules": [
+        {
+          "id": "feedback",
+          "role": "downstream",
+          "label": "人类验收 Feedback 数据闭环",
+          "docs": "https://blksails.cn/docs/pages/admin/internal-testing/feedback",
+          "match": {
+            "files": [
+              "examples/feedback_online.rtt",
+              "examples/track_online.rtt",
+              "examples/track_behavior_live.rtt",
+              "examples/advertiser_account_stats_fast.rtt"
+            ],
+            "directories": ["tools/presencediff/"],
+            "globs": []
+          }
+        }
+      ]
+    },
+    {
+      "source": "github.com/blksails/wxwork",
+      "rules": [
+        {
+          "id": "wxwork-autoconfig",
+          "role": "implementer",
+          "label": "人类验收企业微信 AutoConfig",
+          "docs": "https://blksails.cn/docs/pages/admin/internal-testing/wxwork-autoconfig",
+          "match": {
+            "files": [
+              "server/handlers/config.go",
+              "server/handlers/reception.go",
+              "server/handlers/resource_allocation_status.go",
+              "temporal/activities/contact_way.go",
+              "temporal/workflows/acquisition_workflow.go",
+              "temporal/workflows/allocation_workflow.go",
+              "temporal/workflows/config_workflow.go",
+              "temporal/workflows/contactway_workflow.go"
+            ],
+            "directories": ["internal/autoconfig/", "internal/abstract/"],
+            "globs": [
+              "server/handlers/config_application*",
+              "temporal/activities/allocation_*",
+              "temporal/activities/application_*",
+              "temporal/activities/config_*",
+              "temporal/activities/resource_*",
+              "temporal/activities/schedule_*",
+              "temporal/workflows/schedule_*"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "source": "github.com/blksails/wxworkclient",
+      "rules": [
+        {
+          "id": "wxwork-autoconfig",
+          "role": "implementer",
+          "label": "人类验收企业微信 AutoConfig",
+          "docs": "https://blksails.cn/docs/pages/admin/internal-testing/wxwork-autoconfig",
+          "match": {
+            "files": [
+              "client_generated.go",
+              "impls_generated.go",
+              "types_generated.go"
+            ],
+            "directories": [],
+            "globs": []
+          }
+        }
+      ]
+    },
+    {
+      "source": "github.com/blksails/workflow",
+      "rules": [
+        {
+          "id": "workflow-pushback",
+          "role": "implementer",
+          "label": "人类验收 workflow 回传闭环",
+          "docs": "https://blksails.cn/docs/pages/admin/internal-testing/workflow-pushback",
+          "match": {
+            "files": ["server/pushback_relay.go", "server/temporal.go"],
+            "directories": ["activity/pushback/"],
+            "globs": ["workflows/pushback_*"]
+          }
+        }
+      ]
+    },
+    {
+      "source": "github.com/blksails/supabase",
+      "rules": [
+        {
+          "id": "feedback",
+          "role": "data-contract",
+          "label": "人类验收 Feedback 数据闭环",
+          "docs": "https://blksails.cn/docs/pages/admin/internal-testing/feedback",
+          "match": {
+            "files": [],
+            "directories": [],
+            "globs": ["migrations/*{feedback,tracks}*.sql"]
+          }
+        },
+        {
+          "id": "wxwork-autoconfig",
+          "role": "data-contract",
+          "label": "人类验收企业微信 AutoConfig",
+          "docs": "https://blksails.cn/docs/pages/admin/internal-testing/wxwork-autoconfig",
+          "match": {
+            "files": [],
+            "directories": [],
+            "globs": [
+              "migrations/*{wxwork,contact_ways,acquisition_links}*.sql"
+            ]
+          }
+        },
+        {
+          "id": "workflow-pushback",
+          "role": "data-contract",
+          "label": "人类验收 workflow 回传闭环",
+          "docs": "https://blksails.cn/docs/pages/admin/internal-testing/workflow-pushback",
+          "match": {
+            "files": [],
+            "directories": [],
+            "globs": ["migrations/*{push,pushed,tracks,workflow}*.sql"]
+          }
+        }
+      ]
+    },
+    {
+      "source": "github.com/hnhuaxi/crm_core",
+      "rules": [
+        {
+          "id": "crm-review",
+          "role": "implementer",
+          "label": "人类验收 CRM Review 审批流",
+          "docs": "https://github.com/hnhuaxi/crm_core/blob/develop/docs/REVIEW_SYSTEM_IMPLEMENTATION.md",
+          "match": {
+            "files": [
+              "internal/workflow/review_node.go",
+              "model/review_payload_registry.go",
+              "proto/review.proto",
+              "scripts/check_review_actions.sql",
+              "scripts/init_review_templates.sql"
+            ],
+            "directories": ["internal/review/", "services/review/"],
+            "globs": [
+              "model/*_review.go",
+              "internal/workflow/flows/*review*.yaml",
+              "migrations/*review*.sql"
+            ]
+          }
+        },
+        {
+          "id": "crm-policy-label",
+          "role": "implementer",
+          "label": "人类验收 CRM PolicyLabel 政策标签",
+          "docs": "https://github.com/hnhuaxi/crm_core/blob/develop/e2e/apply_policy_label/README.md",
+          "match": {
+            "files": [
+              "services/advertiser/service.go",
+              "model/batch_policy_label_operation.go",
+              "model/policy_effective_history.go",
+              "model/policylabel.go",
+              "model/policylabel_review.go",
+              "model/policylabelorder.go",
+              "model/policylabelorder_review.go",
+              "proto/policy_label.proto",
+              "proto/policy_label_order.proto"
+            ],
+            "directories": [
+              "services/advertiser/batchpolicylabel/",
+              "services/policylabelorder/"
+            ],
+            "globs": [
+              "model/policy_compensation*.go",
+              "internal/workflow/flows/**/policy_label*.yaml",
+              "migrations/*{policy_label,policylabel,policy_compensation}*.sql"
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

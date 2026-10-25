@@ -1,0 +1,4 @@
+interface:
+  display_name: "Deploy"
+  short_description: "提交当前工作、创建并尝试合并 PR，同步主分支后直接部署验证"
+  default_prompt: "使用 $deploy 整理当前工作、创建 PR 并按仓库规则尝试合并，合并后同步主分支并直接部署验证。"
