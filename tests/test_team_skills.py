@@ -1,6 +1,7 @@
 import importlib.util
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -35,6 +36,20 @@ class TeamSkillsTests(unittest.TestCase):
     def test_agent_aliases(self):
         self.assertEqual(team_skills.selected_agent("codex"), "codex")
         self.assertEqual(team_skills.selected_agent("claude"), "claude-code")
+
+    def test_npx_executable_prefers_windows_command_shim(self):
+        def fake_which(name):
+            return {"npx.cmd": r"C:\\nodejs\\npx.cmd", "npx": r"C:\\nodejs\\npx"}.get(name)
+
+        with patch.object(team_skills.os, "name", "nt"), patch.object(team_skills.shutil, "which", side_effect=fake_which):
+            self.assertEqual(team_skills.npx_executable(), r"C:\\nodejs\\npx.cmd")
+
+    def test_npx_executable_uses_binary_on_posix(self):
+        with patch.object(team_skills.os, "name", "posix"), patch.object(
+            team_skills.shutil, "which", return_value="/usr/local/bin/npx"
+        ) as which:
+            self.assertEqual(team_skills.npx_executable(), "/usr/local/bin/npx")
+            which.assert_called_once_with("npx")
 
 
 if __name__ == "__main__":
