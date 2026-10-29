@@ -81,18 +81,41 @@ class EngineeringDocsTests(unittest.TestCase):
                 path.unlink()
 
     def test_unicode_percent_encoded_paths_and_anchors(self):
-        self.expose("需求 说明.md", "# 目标\n# 目标\n")
-        self.expose("links.md", "[Goal](%E9%9C%80%E6%B1%82%20%E8%AF%B4%E6%98%8E.md#目标-1)\n")
+        self.expose("需求 说明-2026-10-29.md", "# 目标\n# 目标\n")
+        self.expose("links-2026-10-29.md", "[Goal](%E9%9C%80%E6%B1%82%20%E8%AF%B4%E6%98%8E-2026-10-29.md#目标-1)\n")
         self.assertEqual(checker.check(self.root)[0], [])
 
     def test_broken_anchor_is_detected(self):
-        self.expose("design.md", "# Goal\n[Missing](#other)\n")
+        self.expose("design-2026-10-29.md", "# Goal\n[Missing](#other)\n")
         self.assertTrue(any("标题不存在" in error for error in checker.check(self.root)[0]))
 
     def test_fenced_examples_are_not_links_or_headings(self):
-        self.expose("design.md", "# Goal\n```md\n[Example](not-real.md)\n# Fake\n```\n")
+        self.expose("design-2026-10-29.md", "# Goal\n```md\n[Example](not-real.md)\n# Fake\n```\n")
         self.assertEqual(checker.check(self.root)[0], [])
-        self.assertNotIn("fake", checker.anchors((self.docs / "design.md").read_text(encoding="utf-8")))
+        self.assertNotIn("fake", checker.anchors((self.docs / "design-2026-10-29.md").read_text(encoding="utf-8")))
+
+    def test_all_concrete_document_categories_require_dates(self):
+        for name in ("architecture.md", "milestones.md", "ui-guidelines.md", "harness.md",
+                     "plan-mvp.md", "refctory-session.md", "bugfix-input.md",
+                     "milestones/1-mvp.md", "research/models.md"):
+            with self.subTest(name=name):
+                self.expose(name, "# Design\n")
+                self.assertTrue(any(name in error and "日期" in error for error in checker.check(self.root)[0]))
+
+    def test_dated_concrete_documents_pass_together(self):
+        for name in ("architecture", "milestones", "ui-guidelines", "harness", "plan-mvp",
+                     "refctory-session", "bugfix-input", "milestones/1-mvp", "research/models"):
+            self.expose(name + "-2026-10-29.md", "# Design\n")
+        self.assertEqual(checker.check(self.root)[0], [])
+
+    def test_index_and_template_names_stay_stable(self):
+        self.expose("templates/plan.md", "# Template\n")
+        self.expose("research/README.md", "# Research\n")
+        self.assertEqual(checker.check(self.root)[0], [])
+
+    def test_non_feature_invalid_calendar_date_is_rejected(self):
+        self.expose("milestones/1-mvp-2026-02-30.md", "# Stage\n")
+        self.assertTrue(any("日期" in error for error in checker.check(self.root)[0]))
 
     def test_missing_project_is_an_error(self):
         self.assertTrue(checker.check(self.root / "does-not-exist")[0])

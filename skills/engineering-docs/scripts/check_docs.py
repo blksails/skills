@@ -72,7 +72,16 @@ def check(root):
                         errors.append(f"{path.relative_to(root)}：标题不存在 {target}")
                 except (OSError, UnicodeError) as error:
                     errors.append(f"无法读取链接目标 {target}：{error}")
-        # Templates, research and archived evidence are not active feature designs.
+        # Stable indexes and reusable templates keep their discovery names.
+        if docs in path.parents and path.name != "README.md" and "templates" not in path.relative_to(docs).parts:
+            match = re.search(r"-(\d{4}-\d{2}-\d{2})\.md$", path.name)
+            try:
+                if not match:
+                    raise ValueError("具体工程文档应以首次创建日期 -YYYY-MM-DD.md 结尾")
+                date.fromisoformat(match[1])
+            except ValueError as error:
+                errors.append(f"{path.relative_to(root)}：无效文档日期（{error}）")
+        # Active features also keep a portable, descriptive slug.
         if path.parent == docs and path.name.startswith("feature-"):
             match = re.fullmatch(r"feature-[a-z0-9]+(?:-[a-z0-9]+)*-(\d{4}-\d{2}-\d{2})\.md", path.name)
             try:

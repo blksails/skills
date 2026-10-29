@@ -18,36 +18,37 @@ AGENTS.md
 README.md                       # 暴露工程文档入口
 .agents/docs/
   README.md                     # 总索引
-  architecture.md               # 长期架构与依赖边界
-  milestones.md                 # 阶段总览
+  architecture-YYYY-MM-DD.md               # 长期架构与依赖边界
+  milestones-YYYY-MM-DD.md                 # 阶段总览
   milestones/
-    1-<name>.md                 # 每阶段独立管理多个 feature
-    2-<name>.md
-    3-<name>.md
-  ui-guidelines.md              # 用户界面共同约束
-  harness.md                    # 可执行验证与证据规则
+    1-<name>-YYYY-MM-DD.md                 # 每阶段独立管理多个 feature
+    2-<name>-YYYY-MM-DD.md
+    3-<name>-YYYY-MM-DD.md
+  ui-guidelines-YYYY-MM-DD.md              # 用户界面共同约束
+  harness-YYYY-MM-DD.md                    # 可执行验证与证据规则
   feature-<name>-YYYY-MM-DD.md
-  plan-<task>.md                 # 按需
-  refctory-<task>.md             # 按需，保留团队命名
-  bugfix-<task>.md               # 按需
+  plan-<task>-YYYY-MM-DD.md                 # 按需
+  refctory-<task>-YYYY-MM-DD.md             # 按需，保留团队命名
+  bugfix-<task>-YYYY-MM-DD.md               # 按需
   research/
+    <topic>-YYYY-MM-DD.md
   archive/
 ```
 
-1、2、3 表示递增阶段编号，不要求项目必须有三个阶段。工程初始化不列作里程碑 0。保留项目已有兼容命名，迁移时修复引用，不为套结构破坏已有入口。
+1、2、3 表示递增阶段编号，不要求项目必须有三个阶段。工程初始化不列作里程碑 0。维护已有项目时先确认迁移范围，不擅自批量重命名；采用本规范后迁移旧文件并修复全部引用，不能破坏已有入口。
 
 ## 文档各司其职
 
 - **architecture**：整体职责与依赖方向，跨特性共同边界；不复制具体 API 或阶段任务。
 - **milestones**：总览只维护阶段导航、依赖和状态。独立阶段文件说明本阶段一句话需求、交付结果、feature 列表、依赖、状态、验收证据和退出条件。一个 feature 可跨阶段持续扩展，链接始终指向原文件。
 - **feature**：以功能特性为单位的长期技术设计。开头优先用一句话讲清“谁在什么场景，需要什么结果，为了解决什么问题”，随后明确目标与非目标。余下内容按阅读需要自然组织，不固定章节、顺序和表格。
-- **plan**：执行特定任务，引用 feature 的目标与契约，记录步骤、进度和证据，不反向定义另一套设计。小任务直接写入 feature，不必新建 plan。
+- **plan**：执行特定任务或编排一次 MVP 交付，组织实现顺序、依赖、进度和验收。整体 MVP 方案不应直接冒充一个长期 feature；先在 plan 记录待评审输入，从需求中提炼稳定且可独立验收的能力边界，再将技术契约收敛到所属 feature，plan 保留任务与引用。不是每个模块或步骤都需要 feature。小任务直接写入已有 feature，不必新建 plan。
 - **refctory**：重构既有设计。说明为何扩展不足、保留的不变量、职责调整、兼容或迁移，以及前后 harness。默认就地写入 feature；复杂且需独立评审时才拆文件，完成后把当前设计回填 feature。
 - **bugfix**：复现、根因、最小修复和修复前后回归；小修复就地记录，需要独立追踪才拆文件。
 - **research**：保存有独立保留价值的调查、版本、来源、事实与假设、比较和未验证项。短调研就地记录；采纳结论回填 feature，调研不能自动成为批准的设计。
 - **archive**：已完成任务或退役、被替代的设计。仍有效的 feature 不因一次任务完成而归档，保留日期、原因、替代链接和证据，修复所有引用。
 
-新 feature 文件名日期为首次创建日期，例如 `feature-agent-messages-2026-10-29.md`。后续扩展保留原文件与日期，不按任务、更新日期或版本复制 feature。
+所有具体工程文档都使用首次创建日期后缀 `-YYYY-MM-DD.md`，包括架构、里程碑总览与独立阶段、UI 指导、harness、feature、plan、refctory、bugfix 和独立 research，例如 `feature-agent-messages-2026-10-29.md`、`plan-cli-mvp-2026-10-29.md`。日期必须是有效日历日期；后续维护保留原名与日期，更新日期写正文，不按任务、更新日期或版本复制 feature。`AGENTS.md`、各级 `README.md` 和通用模板保留稳定入口名称，不加日期。
 
 ## 最小面、稳定契约与公开入口
 
@@ -63,7 +64,7 @@ README.md                       # 暴露工程文档入口
 
 公开暴露文档是提供可发现的仓库入口，不是替用户发布外网网站或开放私有仓库。文档不含凭据、客户数据和本机绝对路径。
 
-所有用户界面相关 feature、plan、refctory、bugfix、research 与验收记录必须直接链接 `ui-guidelines.md`，并说明相关交互及验证，不能只间接引用总索引。指导文件覆盖用户任务、输入保留、状态反馈、错误与取消、焦点、键盘、可访问性及适用的窗口尺寸；不臆造品牌视觉或技术栈。纯后端工作不强制引用。
+所有用户界面相关 feature、plan、refctory、bugfix、research 与验收记录必须直接链接项目实际的带日期 UI 指导文件（例如 `ui-guidelines-2026-10-29.md`），并说明相关交互及验证，不能只间接引用总索引。指导文件覆盖用户任务、输入保留、状态反馈、错误与取消、焦点、键盘、可访问性及适用的窗口尺寸；不臆造品牌视觉或技术栈。纯后端工作不强制引用。
 
 ## Harness 与工程流程
 
@@ -81,6 +82,6 @@ README.md                       # 暴露工程文档入口
 python <skill-dir>/scripts/check_docs.py --root <project-root>
 ```
 
-Python 3.9+ 标准库即可。脚本只读检查本地行内链接、标题锚点、根入口可达性及 feature 日期命名；不要求固定标题，不判断设计质量或任意文字是否涉及 UI，不验证远端页面。命令中的路径替换为实际目录，`python3` 也可使用。
+Python 3.9+ 标准库即可。脚本只读检查本地行内链接、标题锚点、根入口可达性及具体工程文档日期命名（README 与模板除外）；不要求固定标题，不判断设计质量或任意文字是否涉及 UI，不验证远端页面。命令中的路径替换为实际目录，`python3` 也可使用。
 
 交付说明变更入口、实际检查和未验证项。只有任务明确授权时才提交、推送、创建 PR 或发布；引用一个仓库或要求文档公开可发现不自动授权部署、合并、安装 Skill 或修改成员环境。
