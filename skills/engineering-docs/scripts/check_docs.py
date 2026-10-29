@@ -55,7 +55,7 @@ def check(root):
             errors.append(f"无法读取 {path.relative_to(root)}：{error}")
     for path, text in texts.items():
         if path.parent == docs and path.name.startswith("plan-"):
-            if re.search(r"^#{1,6}\s+(?:Expose\b|公开接口|接口设计|架构设计|执行约定|数据结构)", prose(text), re.M | re.I):
+            if re.search(r"^#{1,6}\s+(?:Expose\b|公开接口|接口设计|架构设计|执行约定|数据结构|目标|前置条件)", prose(text), re.M | re.I):
                 errors.append(f"{path.relative_to(root)}：plan 包含技术设计章节，应移入所属 feature 并引用")
         for target in re.findall(r"(?<!!)\[[^\]\n]+\]\((<[^>]+>|[^)\s]+)\)", prose(text)):
             target = target.strip("<>")
