@@ -94,6 +94,10 @@ def check(root):
 
 
 def main():
+    # Redirected Windows streams may default to a legacy code page.
+    for stream in (sys.stdout, sys.stderr):
+        if hasattr(stream, "reconfigure"):
+            stream.reconfigure(encoding="utf-8")
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--root", required=True, type=Path, help="项目根目录")
     args = parser.parse_args()

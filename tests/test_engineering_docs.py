@@ -1,4 +1,5 @@
 import importlib.util
+import os
 from pathlib import Path
 import subprocess
 import sys
@@ -41,13 +42,31 @@ class EngineeringDocsTests(unittest.TestCase):
     def test_cli_failure_then_repair_leaves_files_unchanged(self):
         path = self.expose("feature-messages-2026-10-29.md", "[Source](missing.rs)\n")
         before = path.read_bytes()
-        result = subprocess.run([sys.executable, str(SCRIPT), "--root", str(self.root)], capture_output=True, text=True)
+        result = subprocess.run([sys.executable, str(SCRIPT), "--root", str(self.root)], capture_output=True, text=True, encoding="utf-8")
         self.assertEqual(result.returncode, 1)
         self.assertIn("missing.rs", result.stderr)
         self.assertEqual(path.read_bytes(), before)
         (self.docs / "missing.rs").write_text("", encoding="utf-8")
         repaired = subprocess.run([sys.executable, str(SCRIPT), "--root", str(self.root)], capture_output=True)
         self.assertEqual(repaired.returncode, 0)
+
+    def test_cli_supports_legacy_stream_encoding(self):
+        self.expose("feature-messages-2026-10-29.md", "# 消息\n")
+        env = dict(os.environ, PYTHONIOENCODING="cp1252", PYTHONUTF8="0")
+        result = subprocess.run(
+            [sys.executable, str(SCRIPT), "--root", str(self.root)],
+            capture_output=True, env=env,
+        )
+        self.assertEqual(result.returncode, 0, result.stderr.decode("utf-8"))
+        self.assertIn("通过", result.stdout.decode("utf-8"))
+        self.expose("broken.md", "[Missing](missing.rs)\n")
+        failed = subprocess.run(
+            [sys.executable, str(SCRIPT), "--root", str(self.root)],
+            capture_output=True, env=env,
+        )
+        self.assertEqual(failed.returncode, 1)
+        self.assertIn("missing.rs", failed.stderr.decode("utf-8"))
+        self.assertNotIn(b"UnicodeEncodeError", failed.stderr)
 
     def test_orphan_document_is_detected(self):
         (self.docs / "orphan.md").write_text("# Orphan\n", encoding="utf-8")
