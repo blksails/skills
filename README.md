@@ -102,7 +102,16 @@ Hook 只检查和提示，不自动修改成员环境：
 | `human-acceptance-gate` | 内部 | required | 提交前识别人类验收流程与证据要求 |
 | `deploy` | 内部 | required | 统一提交、PR、合并、发布和核验流程 |
 | `autoresearch-skill` | 内部 | recommended | 可机械评估任务的自主研究与迭代 |
+| `engineering-docs` | 内部 | optional / experimental | Feature 长期设计、独立里程碑与 harness 驱动的工程文档流程 |
 | `visual-explainer` | 官方 `v0.14.0` | optional | HTML 图解、架构图、评审和演示文稿 |
+
+按需安装工程文档 Skill：
+
+```bash
+npx --yes skills@1.7.4 add https://github.com/blksails/skills -g -a codex -s engineering-docs -y
+```
+
+它用于建立或维护 `.agents/docs/`，保持同一特性设计收敛在一份 feature；不会自动替项目增加 Rust、nsh 或其他技术依赖。使用说明见 [`engineering-docs`](skills/engineering-docs/SKILL.md)。
 
 ## 团队协作流程
 
