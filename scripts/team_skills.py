@@ -163,10 +163,20 @@ def selected_agent(raw: Optional[str]) -> str:
     return AGENT_ALIASES[value]
 
 
+def npx_executable() -> str:
+    """Resolve the executable name that subprocess can launch on this platform."""
+    candidates = ("npx.cmd", "npx") if os.name == "nt" else ("npx",)
+    for candidate in candidates:
+        executable = shutil.which(candidate)
+        if executable:
+            return executable
+    raise TeamSkillsError("找不到 npx；需要 Node.js 22.20+")
+
+
 def run_npx_list(timeout: float) -> list[dict[str, Any]]:
     try:
         result = subprocess.run(
-            ["npx", "--yes", "skills", "list", "-g", "--json"],
+            [npx_executable(), "--yes", "skills", "list", "-g", "--json"],
             text=True,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
@@ -263,8 +273,10 @@ def command_list(catalog: dict[str, Any]) -> None:
 
 def command_doctor(catalog: dict[str, Any]) -> None:
     errors = validate_catalog(catalog)
-    if shutil.which("npx") is None:
-        errors.append("找不到 npx；需要 Node.js 22.20+")
+    try:
+        npx_executable()
+    except TeamSkillsError as exc:
+        errors.append(str(exc))
     if errors:
         raise TeamSkillsError("检查失败：\n- " + "\n- ".join(errors))
     print(f"OK: 目录中 {len(catalog['skills'])} 个 Skill 有效，安装由 npx skills 管理")
