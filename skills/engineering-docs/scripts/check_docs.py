@@ -52,11 +52,11 @@ def check(root):
         try:
             texts[path] = path.read_text(encoding="utf-8")
         except (OSError, UnicodeError) as error:
-            errors.append(f"无法读取 {path.relative_to(root)}：{error}")
+            errors.append(f"无法读取 {path.relative_to(root).as_posix()}：{error}")
     for path, text in texts.items():
         if path.parent == docs and path.name.startswith("plan-"):
             if re.search(r"^#{1,6}\s+(?:Expose\b|公开接口|接口设计|架构设计|执行约定|数据结构|目标|前置条件)", prose(text), re.M | re.I):
-                errors.append(f"{path.relative_to(root)}：plan 包含技术设计章节，应移入所属 feature 并引用")
+                errors.append(f"{path.relative_to(root).as_posix()}：plan 包含技术设计章节，应移入所属 feature 并引用")
         for target in re.findall(r"(?<!!)\[[^\]\n]+\]\((<[^>]+>|[^)\s]+)\)", prose(text)):
             target = target.strip("<>")
             parsed = urlsplit(target)
@@ -65,14 +65,14 @@ def check(root):
             linked = (path.parent / unquote(parsed.path)).resolve() if parsed.path else path
             count += 1
             if not linked.exists():
-                errors.append(f"{path.relative_to(root)}：链接不存在 {target}")
+                errors.append(f"{path.relative_to(root).as_posix()}：链接不存在 {target}")
                 continue
             if linked in edges:
                 edges[path].add(linked)
             if parsed.fragment and linked.is_file() and linked.suffix == ".md":
                 try:
                     if unquote(parsed.fragment) not in anchors(linked.read_text(encoding="utf-8")):
-                        errors.append(f"{path.relative_to(root)}：标题不存在 {target}")
+                        errors.append(f"{path.relative_to(root).as_posix()}：标题不存在 {target}")
                 except (OSError, UnicodeError) as error:
                     errors.append(f"无法读取链接目标 {target}：{error}")
         # Stable indexes and reusable templates keep their discovery names.
@@ -83,7 +83,7 @@ def check(root):
                     raise ValueError("具体工程文档应以首次创建日期 -YYYY-MM-DD.md 结尾")
                 date.fromisoformat(match[1])
             except ValueError as error:
-                errors.append(f"{path.relative_to(root)}：无效文档日期（{error}）")
+                errors.append(f"{path.relative_to(root).as_posix()}：无效文档日期（{error}）")
         # Active features also keep a portable, descriptive slug.
         if path.parent == docs and path.name.startswith("feature-"):
             match = re.fullmatch(r"feature-[a-z0-9]+(?:-[a-z0-9]+)*-(\d{4}-\d{2}-\d{2})\.md", path.name)
@@ -92,7 +92,7 @@ def check(root):
                     raise ValueError("应为 feature-<name>-YYYY-MM-DD.md")
                 date.fromisoformat(match[1])
             except ValueError as error:
-                errors.append(f"{path.relative_to(root)}：无效 feature 名称或日期（{error}）")
+                errors.append(f"{path.relative_to(root).as_posix()}：无效 feature 名称或日期（{error}）")
     seen = set()
     pending = [entry]
     while pending:
@@ -101,7 +101,7 @@ def check(root):
             seen.add(path)
             pending.extend(edges.get(path, set()) - seen)
     for path in sorted(set(files) - seen):
-        errors.append(f"根 README 无法到达：{path.relative_to(root)}")
+        errors.append(f"根 README 无法到达：{path.relative_to(root).as_posix()}")
     return errors, len(files), count
 
 

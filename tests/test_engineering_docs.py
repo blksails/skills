@@ -100,7 +100,7 @@ class EngineeringDocsTests(unittest.TestCase):
                      "milestones/1-mvp.md", "research/models.md"):
             with self.subTest(name=name):
                 self.expose(name, "# Design\n")
-                self.assertTrue(any(name in error and "日期" in error for error in checker.check(self.root)[0]))
+                self.assertTrue(any(name in error and "日期" in error for error in checker.check(self.root)[0]), checker.check(self.root)[0])
 
     def test_dated_concrete_documents_pass_together(self):
         for name in ("architecture", "milestones", "ui-guidelines", "harness", "plan-mvp",
