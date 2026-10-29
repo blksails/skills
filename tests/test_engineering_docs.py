@@ -95,7 +95,7 @@ class EngineeringDocsTests(unittest.TestCase):
         self.assertNotIn("fake", checker.anchors((self.docs / "design-2026-10-29.md").read_text(encoding="utf-8")))
 
     def test_all_concrete_document_categories_require_dates(self):
-        for name in ("architecture.md", "milestones.md", "ui-guidelines.md", "harness.md",
+        for name in ("architecture.md", "milestones.md", "ui-guidelines.md", "verification.md",
                      "plan-mvp.md", "refctory-session.md", "bugfix-input.md",
                      "milestones/1-mvp.md", "research/models.md"):
             with self.subTest(name=name):
@@ -103,7 +103,7 @@ class EngineeringDocsTests(unittest.TestCase):
                 self.assertTrue(any(name in error and "日期" in error for error in checker.check(self.root)[0]), checker.check(self.root)[0])
 
     def test_dated_concrete_documents_pass_together(self):
-        for name in ("architecture", "milestones", "ui-guidelines", "harness", "plan-mvp",
+        for name in ("architecture", "milestones", "ui-guidelines", "verification", "plan-mvp",
                      "refctory-session", "bugfix-input", "milestones/1-mvp", "research/models"):
             self.expose(name + "-2026-10-29.md", "# Design\n")
         self.assertEqual(checker.check(self.root)[0], [])
