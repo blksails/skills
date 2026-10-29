@@ -53,6 +53,14 @@
       "owners": ["platform-team"],
       "tags": ["external", "visualization", "documentation"],
       "stability": "stable"
+    },
+    {
+      "id": "engineering-docs",
+      "path": "skills/engineering-docs",
+      "description": "以 Feature 长期设计、独立里程碑和 harness 验证维护最小化工程文档与开发流程。",
+      "owners": ["platform-team"],
+      "tags": ["engineering", "documentation", "feature-design", "harness"],
+      "stability": "experimental"
     }
   ]
 }

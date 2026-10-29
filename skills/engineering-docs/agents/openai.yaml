@@ -1,0 +1,4 @@
+interface:
+  display_name: "工程文档与 Feature 设计"
+  short_description: "维护以 Feature 为核心的工程文档、独立里程碑与可循环验证的开发流程"
+  default_prompt: "使用 $engineering-docs 整理项目工程文档，让设计收敛到 feature 并建立可重复验证的流程。"
