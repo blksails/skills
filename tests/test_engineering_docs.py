@@ -120,6 +120,13 @@ class EngineeringDocsTests(unittest.TestCase):
     def test_missing_project_is_an_error(self):
         self.assertTrue(checker.check(self.root / "does-not-exist")[0])
 
+    def test_plan_contract_section_fails_then_feature_reference_passes(self):
+        plan = self.expose("plan-mvp-2026-10-29.md", "# MVP\n## Expose 与执行约定\nProposed API\n")
+        self.assertTrue(any("技术设计章节" in error for error in checker.check(self.root)[0]))
+        self.expose("feature-session-2026-10-29.md", "# 会话\n## Expose 与执行约定\nProposed API\n")
+        plan.write_text("# MVP\n## 计划\n交付会话。\n## 涉及的 features\n[Session](feature-session-2026-10-29.md)\n## 任务列表\n先评审后实现。\n## 验证\n未运行。\n", encoding="utf-8")
+        self.assertEqual(checker.check(self.root)[0], [])
+
 
 if __name__ == "__main__":
     unittest.main()
