@@ -30,7 +30,7 @@ class TeamSkillsTests(unittest.TestCase):
         catalog = team_skills.load_catalog()
         findings = team_skills.policy_findings(catalog, {"kiro"})
         self.assertEqual(findings["required"], ["human-acceptance-gate", "deploy"])
-        self.assertEqual(findings["recommended"], ["autoresearch-skill"])
+        self.assertEqual(findings["recommended"], ["autoresearch-skill", "flowchart"])
         self.assertEqual(findings["deprecated"], ["kiro"])
 
     def test_agent_aliases(self):
