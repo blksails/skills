@@ -1,0 +1,4 @@
+interface:
+  display_name: "Flowchart"
+  short_description: "绘制 Mermaid 流程图，并始终在 Mermaid Live 打开可编辑预览"
+  default_prompt: "使用 $flowchart 绘制当前流程，并在 Mermaid Live 中打开预览。"

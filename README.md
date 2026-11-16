@@ -19,13 +19,13 @@ BlackSail 团队 Skill 的统一目录与协作仓库。这里维护团队共同
 
 ```bash
 npx --yes skills@1.7.4 add https://github.com/blksails/skills -g -a "*" \
-  -s human-acceptance-gate -s deploy -s autoresearch-skill -y
+  -s human-acceptance-gate -s deploy -s autoresearch-skill -s flowchart -y
 ```
 
 其中：
 
 - `human-acceptance-gate`、`deploy` 是团队必装项。
-- `autoresearch-skill` 是团队推荐项。
+- `autoresearch-skill`、`flowchart` 是团队推荐项。
 - optional Skill 由成员按工作需要安装。
 
 `-a "*"` 会安装到 `npx skills` 检测到的全部 Agent。只安装到单个 Agent 时，改为 `-a codex`、`-a claude-code`、`-a gemini-cli` 或 `-a opencode`。
@@ -102,6 +102,7 @@ Hook 只检查和提示，不自动修改成员环境：
 | `human-acceptance-gate` | 内部 | required | 提交前识别人类验收流程与证据要求 |
 | `deploy` | 内部 | required | 统一提交、PR、合并、发布和核验流程 |
 | `autoresearch-skill` | 内部 | recommended | 可机械评估任务的自主研究与迭代 |
+| `flowchart` | 内部 | recommended | Mermaid 流程图、代码流程及对象关系图，可编辑预览 |
 | `engineering-docs` | 内部 | optional / experimental | Feature 长期设计、独立里程碑与 harness 驱动的工程文档流程 |
 | `visual-explainer` | 官方 `v0.14.0` | optional | HTML 图解、架构图、评审和演示文稿 |
 

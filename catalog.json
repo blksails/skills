@@ -3,7 +3,7 @@
   "organization": "BlackSail",
   "policy": {
     "required": ["human-acceptance-gate", "deploy"],
-    "recommended": ["autoresearch-skill"],
+    "recommended": ["autoresearch-skill", "flowchart"],
     "deprecated": ["kiro"]
   },
   "skills": [
@@ -61,6 +61,21 @@
       "owners": ["platform-team"],
       "tags": ["engineering", "documentation", "feature-design", "harness"],
       "stability": "experimental"
+    },
+    {
+      "id": "flowchart",
+      "path": "skills/flowchart",
+      "description": "绘制 Mermaid 流程图、代码流程及对象关系图，并在 Mermaid Live 打开可编辑预览。",
+      "owners": [
+        "platform-team"
+      ],
+      "tags": [
+        "internal",
+        "visualization",
+        "mermaid",
+        "documentation"
+      ],
+      "stability": "stable"
     }
   ]
 }
